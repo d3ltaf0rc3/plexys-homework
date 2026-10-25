@@ -1,0 +1,3 @@
+# Corteza runtime data and secrets
+/data/
+.env
