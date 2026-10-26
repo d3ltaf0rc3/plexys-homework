@@ -19,7 +19,7 @@ const { error: schemaError, modules } = useSchema()
 const {
   module, records, labels, total, nextPage, prevPage, loading, error,
   search, sort, columns, titleField, titleOf, userName,
-  fetchRecords, sortBy, setSort, goToPage,
+  refresh, sortBy, setSort, goToPage,
 } = useRecordList(props.handle)
 
 // Cards below this width, a table above it.
@@ -54,13 +54,13 @@ function openEdit(r) {
 async function onSaved(r, { created }) {
   formOpen.value = false
   announce(`${module.value.name} “${titleOf(r)}” ${created ? 'created' : 'saved'}.`)
-  await fetchRecords()
+  await refresh()
 }
 
 async function onDeleted(r) {
   // Refresh before closing: the row (and its Delete button) is gone by the
   // time the dialog returns focus, so focus goes to the page heading.
-  await fetchRecords()
+  await refresh()
   deleting.value = null
   announce(`${module.value.name} “${titleOf(r)}” deleted.`)
 }

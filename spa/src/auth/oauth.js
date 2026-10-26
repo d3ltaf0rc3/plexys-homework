@@ -1,4 +1,5 @@
 import { reactive, computed } from 'vue'
+import { apiClients } from '@cortezaproject/corteza-js'
 import { config } from '../config'
 
 // Sign-in through Corteza's default auth client, the same flow Corteza's own
@@ -72,10 +73,10 @@ async function loadUser(accessToken) {
   const claims = await res.json().catch(() => ({}))
   if (!res.ok || claims.active === false) throw new Error('Could not verify the session.')
 
-  // Imported lazily: the API client itself depends on this module for tokens.
-  // The token is passed explicitly because it is not in the session yet.
-  const { systemApi } = await import('../api/client')
-  const u = await systemApi.userRead({ userID: claims.sub }, { headers: { Authorization: `Bearer ${accessToken}` } })
+  // A client of its own, bound to this token: it is not in the session yet,
+  // and the app's shared clients (api/client.js) depend on this module.
+  const systemApi = new apiClients.System({ baseURL: `${config.apiUrl}/system`, accessTokenFn: () => accessToken })
+  const u = await systemApi.userRead({ userID: claims.sub })
   return { userID: u.userID, name: u.name || '', handle: u.handle || '', email: u.email || '', claims }
 }
 

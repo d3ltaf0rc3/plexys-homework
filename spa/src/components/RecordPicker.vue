@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, useId, onBeforeUnmount } from 'vue'
 import { listRecords, fetchRecordLabels } from '../api/records'
+import { contains } from '../api/query'
 
 // Searchable picker for a Record field (e.g. a ticket's Customer), following
 // the WAI-ARIA combobox pattern with a listbox popup. Only records chosen
@@ -57,10 +58,10 @@ watch(model, async (id, _, onCleanup) => {
 async function search(term) {
   const no = ++requestNo
   loading.value = true
-  const t = term.trim().replace(/'/g, "''")
+  const t = term.trim()
   try {
     const { records, total } = await listRecords(props.module, {
-      query: t ? `${props.labelField} LIKE '%${t}%'` : '',
+      query: t ? contains(props.labelField, t) : '',
       sort: props.labelField,
       limit: LIMIT,
     })

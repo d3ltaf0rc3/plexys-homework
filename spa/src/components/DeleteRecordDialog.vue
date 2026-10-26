@@ -21,14 +21,25 @@ const emit = defineEmits(['close'])
 const busy = ref(false)
 const error = ref('')
 const references = ref(null) // null while counting, then [{ module, field, total }]
+// A failed count is shown as such: an empty list would read as "nothing
+// points to it" and make the delete look safe.
+const referencesFailed = ref(false)
 
-watch(() => props.record, async (r) => {
+watch(() => props.record, async (r, _, onCleanup) => {
+  // The dialog may be closed, or opened for another record, before the
+  // count returns.
+  let stale = false
+  onCleanup(() => { stale = true })
   if (!r) return
   error.value = ''
   references.value = null
-  const refs = await countReferences(r, props.modules).catch(() => [])
-  // The dialog may have been closed, or opened for another record, meanwhile.
-  if (props.record === r) references.value = refs
+  referencesFailed.value = false
+  try {
+    const refs = await countReferences(r, props.modules)
+    if (!stale) references.value = refs
+  } catch {
+    if (!stale) referencesFailed.value = true
+  }
 })
 
 async function confirm() {
@@ -56,7 +67,10 @@ async function confirm() {
     @close="emit('close')"
   >
     <p v-if="record">“{{ title }}” will be deleted.</p>
-    <p v-if="references === null" class="muted small">Checking for related records…</p>
+    <p v-if="referencesFailed" class="warning">
+      Could not check whether other records point to it. Any that do will show it as a missing record.
+    </p>
+    <p v-else-if="references === null" class="muted small">Checking for related records…</p>
     <p v-for="x in references" v-else :key="x.module.moduleID + x.field.name" class="warning">
       {{ x.total }} {{ x.module.name.toLowerCase() }}{{ x.total === 1 ? '' : 's' }}
       still {{ x.total === 1 ? 'points' : 'point' }} to it and will show it as a missing record.
