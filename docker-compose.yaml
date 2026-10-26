@@ -5,10 +5,23 @@ services:
     env_file: [.env]
     depends_on:
       db: { condition: service_healthy }
+      spa-build: { condition: service_completed_successfully }
     ports: ["127.0.0.1:18080:80"]
-    volumes: ["./data/server:/data"]
+    volumes:
+      - ./data/server:/data
+      - ./spa/dist:/corteza/webapp/tickets:ro
     environment:
       DB_DSN: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+
+  spa-build:
+    image: node:22-alpine
+    working_dir: /spa
+    volumes:
+      - ./spa:/spa
+      - /spa/node_modules
+    environment:
+      VITE_NAMESPACE: ${VITE_NAMESPACE:-plexys-hw}
+    command: sh -c "npm ci --no-audit --no-fund && npm run build"
 
   db:
     image: postgres:15
