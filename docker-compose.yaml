@@ -26,8 +26,14 @@ services:
   db:
     image: postgres:15
     restart: unless-stopped
+    # -h 127.0.0.1 skips the socket-only server Postgres runs during first-time
+    # init; start_period covers that init, which is slow on Windows bind mounts.
     healthcheck:
-      { test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"], interval: 10s, timeout: 5s, retries: 5 }
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
     volumes: ["./data/db:/var/lib/postgresql/data"]
     environment:
       POSTGRES_USER: ${DB_USER}
